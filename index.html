@@ -1,28 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Widget Notion</title>
-  <style>
-    body {
-      font-family: Arial;
-      text-align: center;
-      padding: 20px;
-    }
-    button {
-      padding: 10px;
-      font-size: 16px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Interval Timer</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #111;
+  color: white;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+.timer {
+  font-size: 60px;
+  margin: 20px 0;
+}
+
+.controls button {
+  padding: 10px 15px;
+  margin: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+input {
+  width: 60px;
+  text-align: center;
+}
+</style>
 </head>
+
 <body>
 
-<h2>Mi primer widget 🚀</h2>
-<button onclick="saludar()">Click aquí</button>
+<h1>🔥 Interval Timer</h1>
+
+<div>
+  Trabajo: <input id="work" type="number" value="30"> seg  
+  Descanso: <input id="rest" type="number" value="15"> seg  
+  Rondas: <input id="rounds" type="number" value="5">
+</div>
+
+<div class="timer" id="display">00:30</div>
+
+<div id="status">Listo</div>
+
+<div class="controls">
+  <button onclick="startTimer()">Start</button>
+  <button onclick="resetTimer()">Reset</button>
+</div>
 
 <script>
-function saludar() {
-  alert("¡Funciona!");
+let interval;
+let timeLeft;
+let currentRound = 1;
+let isWork = true;
+
+function updateDisplay() {
+  let min = Math.floor(timeLeft / 60);
+  let sec = timeLeft % 60;
+  document.getElementById("display").innerText =
+    String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
+}
+
+function beep() {
+  let ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let oscillator = ctx.createOscillator();
+  oscillator.connect(ctx.destination);
+  oscillator.start();
+  setTimeout(() => oscillator.stop(), 200);
+}
+
+function startTimer() {
+  clearInterval(interval);
+
+  let work = parseInt(document.getElementById("work").value);
+  let rest = parseInt(document.getElementById("rest").value);
+  let rounds = parseInt(document.getElementById("rounds").value);
+
+  timeLeft = work;
+  isWork = true;
+  currentRound = 1;
+
+  document.getElementById("status").innerText = "Trabajo - Ronda 1";
+
+  updateDisplay();
+
+  interval = setInterval(() => {
+    timeLeft--;
+    updateDisplay();
+
+    if (timeLeft <= 0) {
+      beep();
+
+      if (isWork) {
+        isWork = false;
+        timeLeft = rest;
+        document.getElementById("status").innerText = "Descanso";
+      } else {
+        currentRound++;
+        if (currentRound > rounds) {
+          clearInterval(interval);
+          document.getElementById("status").innerText = "✅ Terminado";
+          return;
+        }
+        isWork = true;
+        timeLeft = work;
+        document.getElementById("status").innerText =
+          "Trabajo - Ronda " + currentRound;
+      }
+    }
+
+  }, 1000);
+}
+
+function resetTimer() {
+  clearInterval(interval);
+  document.getElementById("status").innerText = "Reset";
+  document.getElementById("display").innerText = "00:00";
 }
 </script>
 
