@@ -10,20 +10,20 @@
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
     :root {
-      --bg:#0f0f0e;
-      --surface:#191917;
-      --surface2:#222220;
-      --surface3:#2c2c29;
-      --border:rgba(255,255,255,0.07);
-      --border2:rgba(255,255,255,0.12);
-      --text:#f0ede6;
-      --muted:#888780;
-      --hint:#555450;
-      --tp:#4ade80; --tp-bg:rgba(74,222,128,0.08); --tp-border:rgba(74,222,128,0.25);
-      --tn:#60a5fa; --tn-bg:rgba(96,165,250,0.08); --tn-border:rgba(96,165,250,0.25);
-      --fp:#fb923c; --fp-bg:rgba(251,146,60,0.08); --fp-border:rgba(251,146,60,0.25);
-      --fn:#f87171; --fn-bg:rgba(248,113,113,0.08); --fn-border:rgba(248,113,113,0.25);
-      --accent:#e8e3d5;
+      --bg:#f5f4f0;
+      --surface:#ffffff;
+      --surface2:#eeecea;
+      --surface3:#e5e3de;
+      --border:rgba(0,0,0,0.07);
+      --border2:rgba(0,0,0,0.14);
+      --text:#181816;
+      --muted:#77756e;
+      --hint:#aaa9a2;
+      --tp:#16a34a; --tp-bg:#eaf3de; --tp-border:#c0dd97;
+      --tn:#185fa5; --tn-bg:#e6f1fb; --tn-border:#b5d4f4;
+      --fp:#993c1d; --fp-bg:#faece7; --fp-border:#f5c4b3;
+      --fn:#791f1f; --fn-bg:#fcebeb; --fn-border:#f7c1c1;
+      --accent:#181816;
     }
 
     body {
@@ -106,8 +106,8 @@
 
     /* ── imbalance callout ── */
     .callout { border:0.5px solid var(--border2); border-radius:10px; padding:1rem 1.2rem; margin-bottom:1rem; }
-    .callout.warn { border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.05); }
-    .callout.info { border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.05); }
+    .callout.warn { border-color:rgba(153,60,29,0.25); background:rgba(153,60,29,0.04); }
+    .callout.info { border-color:rgba(24,95,165,0.2); background:rgba(24,95,165,0.04); }
     .callout-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px; }
     .callout.warn .callout-title { color:var(--fp); }
     .callout.info .callout-title { color:var(--tn); }
@@ -242,19 +242,19 @@
         <div class="chart-title">Precisión, Recall y F1 vs. umbral τ</div>
         <div class="chart-wrap" style="height:260px;"><canvas id="chart-prthresh" role="img" aria-label="Curva precisión recall vs umbral"></canvas></div>
         <div class="legend">
-          <span><span class="leg-line" style="background:#60a5fa;"></span>Precisión</span>
-          <span><span class="leg-line" style="background:#4ade80;"></span>Recall</span>
-          <span><span class="leg-line" style="background:#fb923c; border-top:2px dashed #fb923c; background:none;"></span>F1</span>
-          <span><span class="leg-line" style="background:#e8e3d5; border-top:2px dashed; background:none;"></span>τ actual</span>
+          <span><span class="leg-line" style="background:#378add;"></span>Precisión</span>
+          <span><span class="leg-line" style="background:#1d9e75;"></span>Recall</span>
+          <span><span class="leg-line" style="border-top:2px dashed #d85a30; background:none;"></span>F1</span>
+          <span><span class="leg-line" style="border-top:2px dashed #aaa9a2; background:none; display:inline-block;"></span>τ actual</span>
         </div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Curva ROC — AUC = <span id="auc-label">—</span></div>
         <div class="chart-wrap" style="height:260px;"><canvas id="chart-roc" role="img" aria-label="Curva ROC"></canvas></div>
         <div class="legend">
-          <span><span class="leg-line" style="background:#60a5fa;"></span>Curva ROC</span>
+          <span><span class="leg-line" style="background:#378add;"></span>Curva ROC</span>
           <span><span class="leg-line" style="background:#555450; border-top:1px dashed; background:none;"></span>Azar</span>
-          <span><span class="leg-dot" style="background:#fb923c;"></span>τ actual</span>
+          <span><span class="leg-dot" style="background:#d85a30;"></span>τ actual</span>
         </div>
       </div>
     </div>
@@ -267,7 +267,7 @@
   <!-- ── SECCIÓN 3: Por qué el accuracy engaña ── -->
   <div class="section">
     <div class="section-label">03 — El engaño del accuracy</div>
-    <h2>¿Por qué el <span id="acc-highlight" style="color:#fb923c;">96%</span> de accuracy puede ser engañoso?</h2>
+    <h2>¿Por qué el <span id="acc-highlight" style="color:#d85a30;">96%</span> de accuracy puede ser engañoso?</h2>
     <p id="acc-explanation"></p>
 
     <div class="two-col" style="margin-bottom:1rem;">
@@ -495,17 +495,17 @@ function renderPRThreshChart(){
   charts.prthresh=new Chart(document.getElementById('chart-prthresh').getContext('2d'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Precisión',data:data.map(d=>d.prec),borderColor:'#60a5fa',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
-      {label:'Recall',   data:data.map(d=>d.rec), borderColor:'#4ade80',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
-      {label:'F1',       data:data.map(d=>d.f1),  borderColor:'#fb923c',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,tension:0.3},
+      {label:'Precisión',data:data.map(d=>d.prec),borderColor:'#378add',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
+      {label:'Recall',   data:data.map(d=>d.rec), borderColor:'#1d9e75',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
+      {label:'F1',       data:data.map(d=>d.f1),  borderColor:'#d85a30',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,tension:0.3},
       {label:'τ actual', data:data.map(d=>d.t<=t+0.005&&d.t>=t-0.005?0.5:null),
        borderColor:'rgba(232,227,213,0.4)',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false,tension:0,spanGaps:false}
     ]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:60},
       plugins:{legend:{display:false}},
       scales:{
-        x:{title:{display:true,text:'umbral τ',color:'#555450',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'},maxTicksLimit:11},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
-        y:{min:0,max:1,ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+        x:{title:{display:true,text:'umbral τ',color:'#9a9890',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'},maxTicksLimit:11},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}},
+        y:{min:0,max:1,ticks:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}
       }
     }
   });
@@ -519,15 +519,15 @@ function renderROCChart(){
   charts.roc=new Chart(document.getElementById('chart-roc').getContext('2d'),{
     type:'line',
     data:{datasets:[
-      {label:'ROC',type:'line',data:pts,borderColor:'#60a5fa',borderWidth:2,pointRadius:0,fill:false,tension:0.1},
-      {label:'Azar',type:'line',data:[{x:0,y:0},{x:1,y:1}],borderColor:'rgba(85,84,80,0.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0},
-      {label:'τ',type:'scatter',data:[{x:fpr0,y:tpr0}],backgroundColor:'#fb923c',pointRadius:7,pointHoverRadius:9}
+      {label:'ROC',type:'line',data:pts,borderColor:'#378add',borderWidth:2,pointRadius:0,fill:false,tension:0.1},
+      {label:'Azar',type:'line',data:[{x:0,y:0},{x:1,y:1}],borderColor:'rgba(170,169,162,0.6)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0},
+      {label:'τ',type:'scatter',data:[{x:fpr0,y:tpr0}],backgroundColor:'#d85a30',pointRadius:7,pointHoverRadius:9}
     ]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:60},
       plugins:{legend:{display:false}},
       scales:{
-        x:{type:'linear',min:0,max:1,title:{display:true,text:'FPR (1−Especificidad)',color:'#555450',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
-        y:{min:0,max:1,title:{display:true,text:'TPR (Recall)',color:'#555450',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+        x:{type:'linear',min:0,max:1,title:{display:true,text:'FPR (1−Especificidad)',color:'#9a9890',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'}},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}},
+        y:{min:0,max:1,title:{display:true,text:'TPR (Recall)',color:'#9a9890',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'}},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}
       }
     }
   });
@@ -544,15 +544,15 @@ function renderNaiveChart(){
     data:{
       labels:['Accuracy','Recall','F1-score'],
       datasets:[
-        {label:'Predictor naive',data:[naiveAcc,rp()>rn()?1:0, naiveF1],backgroundColor:'rgba(85,84,80,0.5)',borderColor:'rgba(85,84,80,0.8)',borderWidth:1,borderRadius:4},
+        {label:'Predictor naive',data:[naiveAcc,rp()>rn()?1:0, naiveF1],backgroundColor:'rgba(170,169,162,0.6)',borderColor:'rgba(170,169,162,0.9)',borderWidth:1,borderRadius:4},
         {label:'Tu modelo',data:[modelAcc,rec(),modelF1],backgroundColor:['rgba(96,165,250,0.7)','rgba(74,222,128,0.7)','rgba(251,146,60,0.7)'],borderColor:['#60a5fa','#4ade80','#fb923c'],borderWidth:1,borderRadius:4}
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:80},
       plugins:{legend:{display:false}},
       scales:{
-        x:{ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'}},grid:{display:false},border:{display:false}},
-        y:{min:0,max:1,ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+        x:{ticks:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'}},grid:{display:false},border:{display:false}},
+        y:{min:0,max:1,ticks:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(0,0,0,0.05)'},border:{display:false}}
       }
     }
   });
@@ -567,7 +567,7 @@ function renderCostChart(){
       labels:['FP (alarmas falsas)','FN (no detectados)','Correctos (TP+TN)'],
       datasets:[{
         data:[fp_v, fn_v, state.tp+state.tn],
-        backgroundColor:['rgba(251,146,60,0.75)','rgba(248,113,113,0.75)','rgba(74,222,128,0.35)'],
+        backgroundColor:['rgba(153,60,29,0.65)','rgba(121,31,31,0.65)','rgba(22,163,74,0.18)'],
         borderColor:['#fb923c','#f87171','rgba(74,222,128,0.4)'],
         borderWidth:1
       }]
@@ -575,7 +575,7 @@ function renderCostChart(){
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:80},
       cutout:'60%',
       plugins:{
-        legend:{display:true,position:'bottom',labels:{color:'#888780',font:{size:10,family:'JetBrains Mono'},boxWidth:10,padding:10}},
+        legend:{display:true,position:'bottom',labels:{color:'#9a9890',font:{size:10,family:'JetBrains Mono'},boxWidth:10,padding:10}},
         tooltip:{callbacks:{label:item=>`${item.label}: ${item.raw} (${n()>0?((item.raw/n())*100).toFixed(1):0}%)`}}
       }
     }
