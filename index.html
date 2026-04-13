@@ -2,128 +2,114 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Interval Timer</title>
+<title>Regresión Lineal Interactiva</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   text-align: center;
-  background: #111;
-  color: white;
   padding: 20px;
 }
 
-h1 {
-  margin-bottom: 10px;
+.container {
+  max-width: 700px;
+  margin: auto;
 }
 
-.timer {
-  font-size: 60px;
-  margin: 20px 0;
-}
-
-.controls button {
-  padding: 10px 15px;
-  margin: 5px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-input {
-  width: 60px;
-  text-align: center;
+.slider {
+  width: 80%;
+  margin: 10px 0;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🔥 Interval Timer</h1>
+<div class="container">
 
-<div>
-  Trabajo: <input id="work" type="number" value="30"> seg  
-  Descanso: <input id="rest" type="number" value="15"> seg  
-  Rondas: <input id="rounds" type="number" value="5">
-</div>
+<h2>📊 Regresión Lineal Interactiva</h2>
 
-<div class="timer" id="display">00:30</div>
+<canvas id="chart"></canvas>
 
-<div id="status">Listo</div>
+<p>Pendiente (m): <span id="mVal">1</span></p>
+<input class="slider" type="range" min="-5" max="5" step="0.1" value="1" id="m">
 
-<div class="controls">
-  <button onclick="startTimer()">Start</button>
-  <button onclick="resetTimer()">Reset</button>
+<p>Intercepto (b): <span id="bVal">0</span></p>
+<input class="slider" type="range" min="-10" max="10" step="0.1" value="0" id="b">
+
+<p>Ruido:</p>
+<input class="slider" type="range" min="0" max="50" step="1" value="10" id="noise">
+
 </div>
 
 <script>
-let interval;
-let timeLeft;
-let currentRound = 1;
-let isWork = true;
+let ctx = document.getElementById('chart').getContext('2d');
 
-function updateDisplay() {
-  let min = Math.floor(timeLeft / 60);
-  let sec = timeLeft % 60;
-  document.getElementById("display").innerText =
-    String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
-}
+function generateData(m, b, noise) {
+    let data = [];
+    let line = [];
 
-function beep() {
-  let ctx = new (window.AudioContext || window.webkitAudioContext)();
-  let oscillator = ctx.createOscillator();
-  oscillator.connect(ctx.destination);
-  oscillator.start();
-  setTimeout(() => oscillator.stop(), 200);
-}
-
-function startTimer() {
-  clearInterval(interval);
-
-  let work = parseInt(document.getElementById("work").value);
-  let rest = parseInt(document.getElementById("rest").value);
-  let rounds = parseInt(document.getElementById("rounds").value);
-
-  timeLeft = work;
-  isWork = true;
-  currentRound = 1;
-
-  document.getElementById("status").innerText = "Trabajo - Ronda 1";
-
-  updateDisplay();
-
-  interval = setInterval(() => {
-    timeLeft--;
-    updateDisplay();
-
-    if (timeLeft <= 0) {
-      beep();
-
-      if (isWork) {
-        isWork = false;
-        timeLeft = rest;
-        document.getElementById("status").innerText = "Descanso";
-      } else {
-        currentRound++;
-        if (currentRound > rounds) {
-          clearInterval(interval);
-          document.getElementById("status").innerText = "✅ Terminado";
-          return;
-        }
-        isWork = true;
-        timeLeft = work;
-        document.getElementById("status").innerText =
-          "Trabajo - Ronda " + currentRound;
-      }
+    for (let x = -10; x <= 10; x += 1) {
+        let y = m * x + b + (Math.random() * noise - noise / 2);
+        data.push({x: x, y: y});
+        line.push({x: x, y: m * x + b});
     }
 
-  }, 1000);
+    return {data, line};
 }
 
-function resetTimer() {
-  clearInterval(interval);
-  document.getElementById("status").innerText = "Reset";
-  document.getElementById("display").innerText = "00:00";
+let mSlider = document.getElementById("m");
+let bSlider = document.getElementById("b");
+let noiseSlider = document.getElementById("noise");
+
+let chart = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+        datasets: [
+            {
+                label: 'Datos',
+                data: [],
+                backgroundColor: 'blue'
+            },
+            {
+                label: 'Regresión',
+                data: [],
+                type: 'line',
+                borderColor: 'red',
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: {type: 'linear', position: 'bottom'}
+        }
+    }
+});
+
+function update() {
+    let m = parseFloat(mSlider.value);
+    let b = parseFloat(bSlider.value);
+    let noise = parseFloat(noiseSlider.value);
+
+    document.getElementById("mVal").innerText = m;
+    document.getElementById("bVal").innerText = b;
+
+    let result = generateData(m, b, noise);
+
+    chart.data.datasets[0].data = result.data;
+    chart.data.datasets[1].data = result.line;
+    chart.update();
 }
+
+mSlider.oninput = update;
+bSlider.oninput = update;
+noiseSlider.oninput = update;
+
+update();
 </script>
 
 </body>
