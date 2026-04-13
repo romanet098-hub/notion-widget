@@ -1,1 +1,627 @@
-aaa
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Métricas de validación</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+    :root {
+      --bg:#0f0f0e;
+      --surface:#191917;
+      --surface2:#222220;
+      --surface3:#2c2c29;
+      --border:rgba(255,255,255,0.07);
+      --border2:rgba(255,255,255,0.12);
+      --text:#f0ede6;
+      --muted:#888780;
+      --hint:#555450;
+      --tp:#4ade80; --tp-bg:rgba(74,222,128,0.08); --tp-border:rgba(74,222,128,0.25);
+      --tn:#60a5fa; --tn-bg:rgba(96,165,250,0.08); --tn-border:rgba(96,165,250,0.25);
+      --fp:#fb923c; --fp-bg:rgba(251,146,60,0.08); --fp-border:rgba(251,146,60,0.25);
+      --fn:#f87171; --fn-bg:rgba(248,113,113,0.08); --fn-border:rgba(248,113,113,0.25);
+      --accent:#e8e3d5;
+    }
+
+    body {
+      font-family:'Syne', sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      padding:2.5rem 1.2rem 5rem;
+    }
+
+    .container { max-width:980px; margin:0 auto; }
+
+    /* ── header ── */
+    .page-header { margin-bottom:2.5rem; padding-bottom:1.5rem; border-bottom:0.5px solid var(--border); }
+    .page-header h1 { font-size:26px; font-weight:700; letter-spacing:-0.03em; color:var(--accent); }
+    .page-header p { font-size:13px; color:var(--muted); margin-top:6px; font-family:'JetBrains Mono',monospace; }
+
+    /* ── section ── */
+    .section { margin-bottom:3rem; }
+    .section-label {
+      font-size:10px; font-family:'JetBrains Mono',monospace; text-transform:uppercase;
+      letter-spacing:0.12em; color:var(--hint); margin-bottom:1rem;
+      display:flex; align-items:center; gap:10px;
+    }
+    .section-label::after { content:''; flex:1; height:0.5px; background:var(--border); }
+    .section > h2 { font-size:18px; font-weight:600; color:var(--accent); margin-bottom:.4rem; letter-spacing:-0.02em; }
+    .section > p { font-size:13px; color:var(--muted); font-family:'JetBrains Mono',monospace; line-height:1.7; margin-bottom:1.2rem; }
+
+    /* ── inputs grid ── */
+    .inputs-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:1.4rem; }
+    .inp-cell { background:var(--surface); border:0.5px solid var(--border); border-radius:10px; padding:1rem; transition:border-color .15s; }
+    .inp-cell:hover { border-color:var(--border2); }
+    .inp-cell label { font-size:10px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:8px; }
+    .inp-cell.tp-cell { border-color:var(--tp-border); background:var(--tp-bg); } .inp-cell.tp-cell label { color:var(--tp); }
+    .inp-cell.tn-cell { border-color:var(--tn-border); background:var(--tn-bg); } .inp-cell.tn-cell label { color:var(--tn); }
+    .inp-cell.fp-cell { border-color:var(--fp-border); background:var(--fp-bg); } .inp-cell.fp-cell label { color:var(--fp); }
+    .inp-cell.fn-cell { border-color:var(--fn-border); background:var(--fn-bg); } .inp-cell.fn-cell label { color:var(--fn); }
+    .inp-cell input[type=number] { width:100%; background:transparent; border:none; outline:none; font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:500; color:var(--text); }
+    .inp-cell input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; }
+    .inp-cell .sublabel { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); margin-top:4px; }
+
+    /* ── cm visual ── */
+    .cm-outer { display:grid; grid-template-columns:auto 1fr 1fr; grid-template-rows:auto 1fr 1fr; gap:4px; margin-bottom:1.4rem; }
+    .cm-axlabel { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--hint); display:flex; align-items:center; justify-content:center; padding:4px 8px; }
+    .cm-axlabel.row { writing-mode:vertical-lr; transform:rotate(180deg); letter-spacing:0.1em; text-transform:uppercase; }
+    .cm-axlabel.col { text-transform:uppercase; letter-spacing:0.1em; }
+    .cm-cell-vis {
+      border-radius:8px; padding:1.1rem 1rem; text-align:center;
+      border:0.5px solid transparent; transition:transform .15s;
+    }
+    .cm-cell-vis:hover { transform:scale(1.02); }
+    .cm-cell-vis .count { font-size:36px; font-weight:700; font-family:'JetBrains Mono',monospace; line-height:1; }
+    .cm-cell-vis .name  { font-size:11px; font-weight:600; margin-top:6px; text-transform:uppercase; letter-spacing:0.06em; }
+    .cm-cell-vis .desc  { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); margin-top:3px; }
+    .cm-tp { background:var(--tp-bg); border-color:var(--tp-border); } .cm-tp .count,.cm-tp .name{color:var(--tp);}
+    .cm-fp { background:var(--fp-bg); border-color:var(--fp-border); } .cm-fp .count,.cm-fp .name{color:var(--fp);}
+    .cm-fn { background:var(--fn-bg); border-color:var(--fn-border); } .cm-fn .count,.cm-fn .name{color:var(--fn);}
+    .cm-tn { background:var(--tn-bg); border-color:var(--tn-border); } .cm-tn .count,.cm-tn .name{color:var(--tn);}
+
+    /* ── metrics strip ── */
+    .metrics-strip { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-bottom:1.4rem; }
+    .met-card { background:var(--surface); border:0.5px solid var(--border); border-radius:10px; padding:.8rem 1rem; }
+    .met-card .met-name { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px; }
+    .met-card .met-val  { font-size:20px; font-weight:600; font-family:'JetBrains Mono',monospace; color:var(--accent); }
+    .met-card .met-formula { font-size:9.5px; font-family:'JetBrains Mono',monospace; color:var(--hint); margin-top:3px; }
+
+    /* ── threshold slider ── */
+    .thresh-row { display:flex; align-items:center; gap:14px; background:var(--surface); border:0.5px solid var(--border); border-radius:10px; padding:.9rem 1.2rem; margin-bottom:1rem; }
+    .thresh-row label { font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--muted); min-width:80px; text-transform:uppercase; letter-spacing:.06em; }
+    .thresh-row input[type=range] { flex:1; -webkit-appearance:none; height:3px; border-radius:2px; background:var(--surface3); outline:none; cursor:pointer; }
+    .thresh-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; transition:transform .1s; }
+    .thresh-row input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.2); }
+    .thresh-val { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--accent); min-width:36px; text-align:right; }
+
+    /* ── two col ── */
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:1rem; }
+    .chart-card { background:var(--surface); border:0.5px solid var(--border); border-radius:12px; padding:1.2rem 1.4rem 1rem; }
+    .chart-title { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--hint); text-transform:uppercase; letter-spacing:.09em; margin-bottom:10px; }
+    .chart-wrap { position:relative; width:100%; }
+
+    /* ── imbalance callout ── */
+    .callout { border:0.5px solid var(--border2); border-radius:10px; padding:1rem 1.2rem; margin-bottom:1rem; }
+    .callout.warn { border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.05); }
+    .callout.info { border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.05); }
+    .callout-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px; }
+    .callout.warn .callout-title { color:var(--fp); }
+    .callout.info .callout-title { color:var(--tn); }
+    .callout p { font-size:12px; font-family:'JetBrains Mono',monospace; color:var(--muted); line-height:1.65; }
+    .callout strong { color:var(--text); font-weight:500; }
+
+    /* ── metric guide table ── */
+    .guide-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .guide-table th { text-align:left; font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--hint); text-transform:uppercase; letter-spacing:.07em; padding:7px 14px; border-bottom:0.5px solid var(--border); font-weight:400; }
+    .guide-table td { padding:9px 14px; border-bottom:0.5px solid var(--border); vertical-align:top; }
+    .guide-table tr:last-child td { border-bottom:none; }
+    .guide-table tr:nth-child(even) td { background:var(--surface2); }
+    .guide-table td:first-child { font-family:'JetBrains Mono',monospace; font-weight:500; color:var(--accent); white-space:nowrap; }
+    .guide-table td:nth-child(2) { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .guide-table td:nth-child(3) { color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px; }
+    .guide-table td:nth-child(4) { color:var(--hint); font-family:'JetBrains Mono',monospace; font-size:11px; }
+    .table-card { background:var(--surface); border:0.5px solid var(--border); border-radius:12px; overflow:hidden; }
+
+    /* ── presets ── */
+    .preset-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:1.2rem; }
+    button { font-family:'Syne',sans-serif; font-size:12px; font-weight:500; cursor:pointer; border-radius:7px; padding:7px 14px; border:0.5px solid var(--border2); background:var(--surface2); color:var(--muted); transition:background .12s,color .12s,transform .08s; white-space:nowrap; }
+    button:hover { background:var(--surface3); color:var(--text); }
+    button:active { transform:scale(.97); }
+    button.active { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+
+    /* ── legend pills ── */
+    .legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; }
+    .legend span { display:flex; align-items:center; gap:6px; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--muted); }
+    .leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .leg-line { width:20px; height:2px; border-radius:1px; flex-shrink:0; }
+
+    /* ── prob bar visual ── */
+    .prob-bars { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:1rem; }
+    .pbar-card { background:var(--surface); border:0.5px solid var(--border); border-radius:10px; padding:.9rem 1rem; }
+    .pbar-title { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:8px; }
+    .pbar-track { height:8px; background:var(--surface3); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+    .pbar-fill { height:100%; border-radius:4px; transition:width .3s; }
+    .pbar-label { font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--hint); display:flex; justify-content:space-between; }
+
+    @media(max-width:640px){
+      .inputs-grid { grid-template-columns:repeat(2,1fr); }
+      .metrics-strip { grid-template-columns:repeat(3,1fr); }
+      .two-col { grid-template-columns:1fr; }
+      .cm-outer { display:flex; flex-wrap:wrap; gap:8px; }
+      .cm-axlabel { display:none; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <h1>Métricas de validación en clasificación</h1>
+    <p>La matriz de confusión como fuente de todas las métricas · interactivo y editable</p>
+  </div>
+
+  <!-- ── SECCIÓN 1: Matriz de confusión ── -->
+  <div class="section">
+    <div class="section-label">01 — Matriz de confusión</div>
+    <h2>La fuente de todas las métricas</h2>
+    <p>Edita directamente los valores TP, TN, FP, FN — todas las métricas, gráficos e interpretaciones se actualizan en tiempo real.</p>
+
+    <div class="preset-row">
+      <button class="active" id="btn-fraude"  onclick="loadPreset('fraude')">Detección fraude</button>
+      <button id="btn-cancer"  onclick="loadPreset('cancer')">Diagnóstico cáncer</button>
+      <button id="btn-spam"    onclick="loadPreset('spam')">Filtro spam</button>
+      <button id="btn-balance" onclick="loadPreset('balance')">Clases balanceadas</button>
+      <button id="btn-custom"  onclick="focusCustom()">Personalizado</button>
+    </div>
+
+    <div class="inputs-grid">
+      <div class="inp-cell tp-cell">
+        <label>TP — Verdadero Positivo</label>
+        <input type="number" id="inp-tp" value="80" min="0" oninput="onInput()" />
+        <div class="sublabel" id="sub-tp">Positivo real, predicho positivo</div>
+      </div>
+      <div class="inp-cell fp-cell">
+        <label>FP — Falso Positivo</label>
+        <input type="number" id="inp-fp" value="20" min="0" oninput="onInput()" />
+        <div class="sublabel">Negativo real, predicho positivo (alarma falsa)</div>
+      </div>
+      <div class="inp-cell fn-cell">
+        <label>FN — Falso Negativo</label>
+        <input type="number" id="inp-fn" value="20" min="0" oninput="onInput()" />
+        <div class="sublabel">Positivo real, predicho negativo (no detectado)</div>
+      </div>
+      <div class="inp-cell tn-cell">
+        <label>TN — Verdadero Negativo</label>
+        <input type="number" id="inp-tn" value="880" min="0" oninput="onInput()" />
+        <div class="sublabel">Negativo real, predicho negativo</div>
+      </div>
+    </div>
+
+    <!-- CM visual -->
+    <div class="cm-outer">
+      <div></div>
+      <div class="cm-axlabel col" style="color:var(--fp);">Predicho Positivo</div>
+      <div class="cm-axlabel col" style="color:var(--tn);">Predicho Negativo</div>
+      <div class="cm-axlabel row" style="color:var(--tp);">Real Positivo</div>
+      <div class="cm-cell-vis cm-tp"><div class="count" id="cm-tp">80</div><div class="name">Verdadero Positivo</div><div class="desc" id="cm-tp-pct"></div></div>
+      <div class="cm-cell-vis cm-fn"><div class="count" id="cm-fn">20</div><div class="name">Falso Negativo</div><div class="desc" id="cm-fn-pct"></div></div>
+      <div class="cm-axlabel row" style="color:var(--tn);">Real Negativo</div>
+      <div class="cm-cell-vis cm-fp"><div class="count" id="cm-fp">20</div><div class="name">Falso Positivo</div><div class="desc" id="cm-fp-pct"></div></div>
+      <div class="cm-cell-vis cm-tn"><div class="count" id="cm-tn">880</div><div class="name">Verdadero Negativo</div><div class="desc" id="cm-tn-pct"></div></div>
+    </div>
+
+    <!-- Métricas strip -->
+    <div class="metrics-strip" id="metrics-strip"></div>
+
+    <!-- Barras de métricas visuales -->
+    <div class="prob-bars" id="metric-bars"></div>
+
+    <!-- Callout dinámico -->
+    <div id="callout-box"></div>
+
+  </div>
+
+  <!-- ── SECCIÓN 2: Umbral y trade-off ── -->
+  <div class="section">
+    <div class="section-label">02 — Umbral de decisión τ</div>
+    <h2>Trade-off Precisión / Recall</h2>
+    <p>El umbral τ define cuándo el modelo clasifica como positivo. Moverlo cambia el equilibrio entre FP y FN.</p>
+
+    <div class="thresh-row">
+      <label>Umbral τ</label>
+      <input type="range" id="sl-thresh" min="0.01" max="0.99" step="0.01" value="0.5" oninput="onThresh(this.value)" />
+      <span class="thresh-val" id="thresh-val">0.50</span>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="chart-title">Precisión, Recall y F1 vs. umbral τ</div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-prthresh" role="img" aria-label="Curva precisión recall vs umbral"></canvas></div>
+        <div class="legend">
+          <span><span class="leg-line" style="background:#60a5fa;"></span>Precisión</span>
+          <span><span class="leg-line" style="background:#4ade80;"></span>Recall</span>
+          <span><span class="leg-line" style="background:#fb923c; border-top:2px dashed #fb923c; background:none;"></span>F1</span>
+          <span><span class="leg-line" style="background:#e8e3d5; border-top:2px dashed; background:none;"></span>τ actual</span>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Curva ROC — AUC = <span id="auc-label">—</span></div>
+        <div class="chart-wrap" style="height:260px;"><canvas id="chart-roc" role="img" aria-label="Curva ROC"></canvas></div>
+        <div class="legend">
+          <span><span class="leg-line" style="background:#60a5fa;"></span>Curva ROC</span>
+          <span><span class="leg-line" style="background:#555450; border-top:1px dashed; background:none;"></span>Azar</span>
+          <span><span class="leg-dot" style="background:#fb923c;"></span>τ actual</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Métricas en el umbral actual -->
+    <div class="metrics-strip" id="thresh-metrics" style="grid-template-columns:repeat(5,1fr);"></div>
+
+  </div>
+
+  <!-- ── SECCIÓN 3: Por qué el accuracy engaña ── -->
+  <div class="section">
+    <div class="section-label">03 — El engaño del accuracy</div>
+    <h2>¿Por qué el <span id="acc-highlight" style="color:#fb923c;">96%</span> de accuracy puede ser engañoso?</h2>
+    <p id="acc-explanation"></p>
+
+    <div class="two-col" style="margin-bottom:1rem;">
+      <div class="chart-card">
+        <div class="chart-title">Accuracy naive vs. tu modelo</div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="chart-acc-naive" role="img" aria-label="Comparación accuracy naive vs modelo"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Coste relativo FP vs FN</div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="chart-cost" role="img" aria-label="Coste FP vs FN"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECCIÓN 4: Guía de métricas ── -->
+  <div class="section">
+    <div class="section-label">04 — Guía de métricas</div>
+    <h2>¿Cuándo usar cada métrica?</h2>
+
+    <div class="table-card">
+      <table class="guide-table">
+        <thead>
+          <tr>
+            <th>Métrica</th>
+            <th>Fórmula</th>
+            <th>Úsala cuando…</th>
+            <th>Ejemplo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>R²</td><td>1 − SS_res/SS_tot</td><td>Regresión — % varianza explicada</td><td>Precio vivienda</td></tr>
+          <tr><td>RMSE</td><td>√(Σeᵢ²/n)</td><td>Regresión — error en unidades reales</td><td>Error medio en €</td></tr>
+          <tr><td>Accuracy</td><td>(TP+TN)/n</td><td>Clases equilibradas, coste FP≈FN</td><td>Clasificar emails (general)</td></tr>
+          <tr><td>Precisión</td><td>TP/(TP+FP)</td><td>Los FP son muy costosos</td><td>Spam (no perder email legítimo)</td></tr>
+          <tr><td>Recall</td><td>TP/(TP+FN)</td><td>Los FN son muy costosos</td><td>Fraude bancario, cáncer</td></tr>
+          <tr><td>F1-score</td><td>2·P·R/(P+R)</td><td>Balance Precisión/Recall, clases desiguales</td><td>Detección de fraude</td></tr>
+          <tr><td>AUC-ROC</td><td>Área bajo curva ROC</td><td>Comparar modelos, umbral flexible</td><td>Scoring de crédito</td></tr>
+          <tr><td>Log-loss</td><td>−Σ[y·log(p̂)+(1−y)·log(1−p̂)]/n</td><td>Cuando importa la calibración de probabilidades</td><td>Forecasting meteorológico</td></tr>
+          <tr><td>MCC</td><td>(TP·TN−FP·FN)/√((TP+FP)(TP+FN)(TN+FP)(TN+FN))</td><td>Clases muy desbalanceadas, métrica robusta</td><td>Diagnóstico médico raro</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── presets ── */
+const PRESETS = {
+  fraude:  { tp:80,  fp:20,  fn:20,  tn:880,  pos:'fraude',   neg:'normal',      ctx:'fraude bancario' },
+  cancer:  { tp:45,  fp:5,   fn:10,  tn:140,  pos:'maligno',  neg:'benigno',     ctx:'diagnóstico cáncer' },
+  spam:    { tp:380, fp:15,  fn:40,  tn:565,  pos:'spam',     neg:'legítimo',    ctx:'filtro de spam' },
+  balance: { tp:120, fp:30,  fn:30,  tn:120,  pos:'positivo', neg:'negativo',    ctx:'clases balanceadas' },
+};
+
+let state = { ...PRESETS.fraude, thresh:0.5 };
+let charts = {};
+
+/* ── helpers ── */
+const n  = () => state.tp+state.fp+state.fn+state.tn;
+const pp = () => state.tp+state.fp;   // predicted positive
+const pn = () => state.fn+state.tn;   // predicted negative
+const rp = () => state.tp+state.fn;   // real positive
+const rn = () => state.fp+state.tn;   // real negative
+const acc  = () => (state.tp+state.tn)/n();
+const prec = () => pp()>0 ? state.tp/pp() : 0;
+const rec  = () => rp()>0 ? state.tp/rp() : 0;
+const spec = () => rn()>0 ? state.tn/rn() : 0;
+const f1   = () => { const p=prec(),r=rec(); return (p+r)>0?2*p*r/(p+r):0; }
+const npv  = () => pn()>0 ? state.tn/pn() : 0;
+const mcc  = () => {
+  const d=Math.sqrt((state.tp+state.fp)*(state.tp+state.fn)*(state.tn+state.fp)*(state.tn+state.fn));
+  return d>0?(state.tp*state.tn-state.fp*state.fn)/d:0;
+};
+const fmt = (v,d=1) => isNaN(v)?'—':(v*100).toFixed(d)+'%';
+const fmtn = (v,d=3) => isNaN(v)?'—':parseFloat(v.toFixed(d)).toLocaleString('es-ES');
+
+/* ── synthetic ROC from confusion matrix ── */
+function syntheticROC(tp,fp,fn,tn){
+  // generate a plausible ROC from the observed operating point
+  const tpr0=tp/(tp+fn+1e-9), fpr0=fp/(fp+tn+1e-9);
+  const pts=[{x:0,y:0}];
+  for(let i=1;i<=100;i++){
+    const t=i/100;
+    const fpr=t<=fpr0 ? fpr0*Math.pow(t/fpr0,0.5) : fpr0+(1-fpr0)*Math.pow((t-fpr0)/(1-fpr0),1.2);
+    const tpr=t<=tpr0 ? tpr0*Math.pow(t/tpr0,0.7) : tpr0+(1-tpr0)*Math.pow((t-tpr0)/(1-tpr0),0.9);
+    pts.push({x:Math.min(1,fpr),y:Math.min(1,tpr)});
+  }
+  pts.push({x:1,y:1});
+  let a=0;
+  for(let i=1;i<pts.length;i++) a+=Math.abs(pts[i].x-pts[i-1].x)*(pts[i].y+pts[i-1].y)/2;
+  return {pts,auc:Math.abs(a)};
+}
+
+/* ── P-R vs threshold (synthetic) ── */
+function syntheticPRThresh(tp,fp,fn,tn){
+  const tpr0=tp/(tp+fn+1e-9), fpr0=fp/(fp+tn+1e-9);
+  const thresholds=Array.from({length:99},(_,i)=>(i+1)/100);
+  return thresholds.map(t=>{
+    const tpEst=tp*Math.max(0,(tpr0>0?Math.min(1,(1-t)/(1-0+1e-9)*tpr0*1.1:0)));
+    const recallEst=Math.max(0,Math.min(1,tpr0*(1-t)*2.5));
+    const precEst=Math.max(0,Math.min(1, t<0.5 ? 0.4+t*0.9 : prec()+(t-0.5)*0.8 ));
+    const f1Est=precEst+recallEst>0?2*precEst*recallEst/(precEst+recallEst):0;
+    return {t, prec:precEst, rec:recallEst, f1:f1Est};
+  });
+}
+
+/* ── render all ── */
+function render(){
+  const {tp,fp,fn,tn} = state;
+  const total=n();
+
+  // sync CM visual
+  ['tp','fp','fn','tn'].forEach(k=>{
+    document.getElementById('cm-'+k).textContent=state[k];
+    document.getElementById('cm-'+k+'-pct').textContent=total>0?((state[k]/total)*100).toFixed(1)+'% del total':'';
+  });
+
+  // metrics strip
+  const metrics=[
+    {name:'Accuracy',   val:fmt(acc()),   formula:'(TP+TN)/n'},
+    {name:'Precisión',  val:fmt(prec()),  formula:'TP/(TP+FP)'},
+    {name:'Recall',     val:fmt(rec()),   formula:'TP/(TP+FN)'},
+    {name:'F1-score',   val:fmt(f1()),    formula:'2·P·R/(P+R)'},
+    {name:'Especific.', val:fmt(spec()),  formula:'TN/(TN+FP)'},
+    {name:'MCC',        val:fmtn(mcc(),3),formula:'(TP·TN−FP·FN)/√…'},
+  ];
+  const strip=document.getElementById('metrics-strip');
+  strip.innerHTML='';
+  metrics.forEach(m=>{
+    const d=document.createElement('div');
+    d.className='met-card';
+    d.innerHTML=`<div class="met-name">${m.name}</div><div class="met-val">${m.val}</div><div class="met-formula">${m.formula}</div>`;
+    strip.appendChild(d);
+  });
+
+  // metric bars
+  const bars=[
+    {name:'Accuracy',  val:acc(),  color:'#60a5fa'},
+    {name:'Precisión', val:prec(), color:'#a78bfa'},
+    {name:'Recall',    val:rec(),  color:'#4ade80'},
+    {name:'F1',        val:f1(),   color:'#fb923c'},
+  ];
+  const barsEl=document.getElementById('metric-bars');
+  barsEl.innerHTML='';
+  bars.forEach(b=>{
+    const d=document.createElement('div');
+    d.className='pbar-card';
+    d.innerHTML=`<div class="pbar-title">${b.name}</div>
+      <div class="pbar-track"><div class="pbar-fill" style="width:${(b.val*100).toFixed(1)}%;background:${b.color};"></div></div>
+      <div class="pbar-label"><span>${(b.val*100).toFixed(1)}%</span><span style="color:${b.color};">⬛</span></div>`;
+    barsEl.appendChild(d);
+  });
+
+  // callout
+  const pos=rp(), neg=rn(), imbalance=total>0?Math.max(pos,neg)/total:0.5;
+  const naiveAcc=total>0?Math.max(pos,neg)/total:0;
+  const callout=document.getElementById('callout-box');
+  if(imbalance>0.8){
+    const majorClass=pos>neg?state.pos:state.neg;
+    callout.innerHTML=`<div class="callout warn">
+      <div class="callout-title">Desbalanceo de clases detectado</div>
+      <p>La clase "${majorClass}" representa el <strong>${(imbalance*100).toFixed(0)}%</strong> del total.
+      Un modelo que siempre prediga "${majorClass}" tendría un accuracy del <strong>${fmt(naiveAcc)}</strong> — sin aprender nada.
+      En este contexto el Recall, F1 y AUC son más informativos que el Accuracy.</p>
+    </div>`;
+  } else {
+    callout.innerHTML=`<div class="callout info">
+      <div class="callout-title">Distribución de clases</div>
+      <p>Clase positiva (${state.pos}): <strong>${pos}</strong> obs. (${total>0?((pos/total)*100).toFixed(1):0}%) ·
+      Clase negativa (${state.neg}): <strong>${neg}</strong> obs. (${total>0?((neg/total)*100).toFixed(1):0}%) ·
+      Accuracy naive (predictor constante): <strong>${fmt(naiveAcc)}</strong>.</p>
+    </div>`;
+  }
+
+  // accuracy explanation
+  const accVal=acc();
+  document.getElementById('acc-highlight').textContent=fmt(accVal);
+  document.getElementById('acc-explanation').textContent=
+    `Con TP=${tp}, FP=${fp}, FN=${fn}, TN=${tn} (n=${total}): accuracy = ${fmt(accVal)}. ` +
+    `Un predictor que dijera siempre "${pos>neg?'negativo':'positivo'}" tendría accuracy = ${fmt(naiveAcc)}. ` +
+    (Math.abs(accVal-naiveAcc)<0.05 ? `La diferencia es solo ${((accVal-naiveAcc)*100).toFixed(1)} pp — el accuracy es engañoso aquí. Usa Recall o F1.` :
+     `El modelo mejora ${((accVal-naiveAcc)*100).toFixed(1)} pp sobre el naive, pero revisa siempre Recall y F1.`);
+
+  // threshold metrics
+  renderThreshMetrics();
+
+  // charts
+  renderPRThreshChart();
+  renderROCChart();
+  renderNaiveChart();
+  renderCostChart();
+}
+
+function renderThreshMetrics(){
+  const t=state.thresh;
+  const tpr0=rp()>0?state.tp/rp():0, fpr0=rn()>0?state.fp/rn():0;
+  // estimate metrics at threshold t relative to operating point
+  const recEst=Math.max(0,Math.min(1, tpr0*(1+(0.5-t)*1.2) ));
+  const precEst=Math.max(0,Math.min(1, prec()+(t-0.5)*0.6 ));
+  const f1Est=precEst+recEst>0?2*precEst*recEst/(precEst+recEst):0;
+  const specEst=Math.max(0,Math.min(1, spec()+(t-0.5)*0.5));
+  const ms=[
+    {name:'Precisión τ',  val:fmt(precEst)},
+    {name:'Recall τ',     val:fmt(recEst)},
+    {name:'Especific. τ', val:fmt(specEst)},
+    {name:'F1 τ',         val:fmt(f1Est)},
+    {name:'Umbral τ',     val:t.toFixed(2)},
+  ];
+  const el=document.getElementById('thresh-metrics');
+  el.innerHTML='';
+  ms.forEach(m=>{
+    const d=document.createElement('div');
+    d.className='met-card';
+    d.innerHTML=`<div class="met-name">${m.name}</div><div class="met-val">${m.val}</div>`;
+    el.appendChild(d);
+  });
+}
+
+function renderPRThreshChart(){
+  const data=syntheticPRThresh(state.tp,state.fp,state.fn,state.tn);
+  const labels=data.map(d=>d.t.toFixed(2));
+  const t=state.thresh;
+  if(charts.prthresh) charts.prthresh.destroy();
+  charts.prthresh=new Chart(document.getElementById('chart-prthresh').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Precisión',data:data.map(d=>d.prec),borderColor:'#60a5fa',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
+      {label:'Recall',   data:data.map(d=>d.rec), borderColor:'#4ade80',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
+      {label:'F1',       data:data.map(d=>d.f1),  borderColor:'#fb923c',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,tension:0.3},
+      {label:'τ actual', data:data.map(d=>d.t<=t+0.005&&d.t>=t-0.005?0.5:null),
+       borderColor:'rgba(232,227,213,0.4)',borderWidth:1.5,borderDash:[3,3],pointRadius:0,fill:false,tension:0,spanGaps:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:60},
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{title:{display:true,text:'umbral τ',color:'#555450',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'},maxTicksLimit:11},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+        y:{min:0,max:1,ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+      }
+    }
+  });
+}
+
+function renderROCChart(){
+  const {pts,auc}=syntheticROC(state.tp,state.fp,state.fn,state.tn);
+  const tpr0=rp()>0?state.tp/rp():0, fpr0=rn()>0?state.fp/rn():0;
+  document.getElementById('auc-label').textContent=auc.toFixed(3);
+  if(charts.roc) charts.roc.destroy();
+  charts.roc=new Chart(document.getElementById('chart-roc').getContext('2d'),{
+    type:'line',
+    data:{datasets:[
+      {label:'ROC',type:'line',data:pts,borderColor:'#60a5fa',borderWidth:2,pointRadius:0,fill:false,tension:0.1},
+      {label:'Azar',type:'line',data:[{x:0,y:0},{x:1,y:1}],borderColor:'rgba(85,84,80,0.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0},
+      {label:'τ',type:'scatter',data:[{x:fpr0,y:tpr0}],backgroundColor:'#fb923c',pointRadius:7,pointHoverRadius:9}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:60},
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{type:'linear',min:0,max:1,title:{display:true,text:'FPR (1−Especificidad)',color:'#555450',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+        y:{min:0,max:1,title:{display:true,text:'TPR (Recall)',color:'#555450',font:{size:10,family:'JetBrains Mono'}},ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+      }
+    }
+  });
+}
+
+function renderNaiveChart(){
+  const naiveAcc=Math.max(rp(),rn())/n();
+  const modelAcc=acc();
+  const modelF1=f1();
+  const naiveF1=rp()>rn()?1*rp()/n()*0: 0;
+  if(charts.naive) charts.naive.destroy();
+  charts.naive=new Chart(document.getElementById('chart-acc-naive').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:['Accuracy','Recall','F1-score'],
+      datasets:[
+        {label:'Predictor naive',data:[naiveAcc,rp()>rn()?1:0, naiveF1],backgroundColor:'rgba(85,84,80,0.5)',borderColor:'rgba(85,84,80,0.8)',borderWidth:1,borderRadius:4},
+        {label:'Tu modelo',data:[modelAcc,rec(),modelF1],backgroundColor:['rgba(96,165,250,0.7)','rgba(74,222,128,0.7)','rgba(251,146,60,0.7)'],borderColor:['#60a5fa','#4ade80','#fb923c'],borderWidth:1,borderRadius:4}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:80},
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'}},grid:{display:false},border:{display:false}},
+        y:{min:0,max:1,ticks:{color:'#555450',font:{size:10,family:'JetBrains Mono'},callback:v=>(v*100).toFixed(0)+'%'},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+      }
+    }
+  });
+}
+
+function renderCostChart(){
+  const fp_v=state.fp, fn_v=state.fn;
+  if(charts.cost) charts.cost.destroy();
+  charts.cost=new Chart(document.getElementById('chart-cost').getContext('2d'),{
+    type:'doughnut',
+    data:{
+      labels:['FP (alarmas falsas)','FN (no detectados)','Correctos (TP+TN)'],
+      datasets:[{
+        data:[fp_v, fn_v, state.tp+state.tn],
+        backgroundColor:['rgba(251,146,60,0.75)','rgba(248,113,113,0.75)','rgba(74,222,128,0.35)'],
+        borderColor:['#fb923c','#f87171','rgba(74,222,128,0.4)'],
+        borderWidth:1
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:80},
+      cutout:'60%',
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{color:'#888780',font:{size:10,family:'JetBrains Mono'},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:item=>`${item.label}: ${item.raw} (${n()>0?((item.raw/n())*100).toFixed(1):0}%)`}}
+      }
+    }
+  });
+}
+
+/* ── events ── */
+function onInput(){
+  state.tp=parseInt(document.getElementById('inp-tp').value)||0;
+  state.fp=parseInt(document.getElementById('inp-fp').value)||0;
+  state.fn=parseInt(document.getElementById('inp-fn').value)||0;
+  state.tn=parseInt(document.getElementById('inp-tn').value)||0;
+  // clear active preset
+  Object.keys(PRESETS).forEach(k=>document.getElementById('btn-'+k).classList.remove('active'));
+  render();
+}
+
+function onThresh(v){
+  state.thresh=parseFloat(v);
+  document.getElementById('thresh-val').textContent=parseFloat(v).toFixed(2);
+  renderThreshMetrics();
+  renderPRThreshChart();
+  renderROCChart();
+}
+
+function loadPreset(name){
+  const p=PRESETS[name];
+  state={...state,...p};
+  document.getElementById('inp-tp').value=p.tp;
+  document.getElementById('inp-fp').value=p.fp;
+  document.getElementById('inp-fn').value=p.fn;
+  document.getElementById('inp-tn').value=p.tn;
+  Object.keys(PRESETS).forEach(k=>document.getElementById('btn-'+k).classList.remove('active'));
+  document.getElementById('btn-'+name).classList.add('active');
+  document.getElementById('btn-custom').classList.remove('active');
+  render();
+}
+
+function focusCustom(){
+  Object.keys(PRESETS).forEach(k=>document.getElementById('btn-'+k).classList.remove('active'));
+  document.getElementById('btn-custom').classList.add('active');
+  document.getElementById('inp-tp').focus();
+}
+
+/* ── init ── */
+render();
+</script>
+</body>
+</html>
