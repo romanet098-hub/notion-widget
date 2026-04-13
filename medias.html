@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estadística descriptiva</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f4f0; --surface: #ffffff; --surface2: #eeecea; --surface3: #e5e3de;
+      --border: rgba(0,0,0,0.07); --text: #181816; --muted: #77756e; --hint: #aaa9a2;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }
+    .container { max-width: 860px; margin: 0 auto; }
+    header { margin-bottom: 2rem; }
+    header h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+    header p { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+    .input-card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+    .input-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.05em; }
+    .input-row { display: flex; gap: 10px; align-items: stretch; }
+    textarea { flex: 1; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text); background: var(--surface2); border: 0.5px solid var(--border); border-radius: 8px; padding: 10px 12px; resize: vertical; min-height: 72px; outline: none; line-height: 1.6; transition: border-color 0.15s; }
+    textarea:focus { border-color: rgba(0,0,0,0.25); }
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
+    button { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 8px; padding: 9px 18px; border: 0.5px solid rgba(0,0,0,0.15); transition: background 0.12s, transform 0.08s; white-space: nowrap; }
+    button:active { transform: scale(0.97); }
+    .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .btn-primary:hover { background: #333; }
+    .btn-secondary { background: var(--surface2); color: var(--muted); }
+    .btn-secondary:hover { background: var(--surface3); }
+    .error { font-size: 12px; color: #a32d2d; margin-top: 6px; font-family: 'DM Mono', monospace; min-height: 18px; }
+    .n-badge { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .n-badge strong { color: var(--text); }
+    .section-title { font-size: 11px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; color: var(--hint); margin: 1.5rem 0 0.5rem; }
+    .stats-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 0.5rem; }
+    .stat-table-card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); overflow: hidden; }
+    .stat-table-card .card-head { font-size: 11px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; padding: 7px 14px; border-bottom: 0.5px solid var(--border); }
+    .card-head.blue   { color: #185fa5; background: #e6f1fb; }
+    .card-head.teal   { color: #0f6e56; background: #e1f5ee; }
+    .card-head.amber  { color: #854f0b; background: #faeeda; }
+    .card-head.purple { color: #534ab7; background: #eeedfe; }
+    .card-head.green  { color: #3b6d11; background: #eaf3de; }
+    .card-head.gray   { color: var(--muted); background: var(--surface2); }
+    .stab { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .stab tr { border-bottom: 0.5px solid var(--border); }
+    .stab tr:last-child { border-bottom: none; }
+    .stab tr:nth-child(even) td { background: #fafaf9; }
+    .stab td { padding: 5px 14px; line-height: 1.5; }
+    .stab td:first-child { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11.5px; width: 55%; }
+    .stab td:last-child  { font-weight: 500; color: var(--text); text-align: right; font-family: 'DM Mono', monospace; }
+    .chart-card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); padding: 1.25rem 1.5rem 1rem; margin-top: 0.7rem; }
+    .boxplot-card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); padding: 1.4rem 1.5rem 1rem; margin-top: 0.7rem; position: relative; }
+    #boxplotCanvas { width: 100%; cursor: default; display: block; }
+    .tooltip-box { position: absolute; background: #181816; color: #fff; font-family: 'DM Mono', monospace; font-size: 12px; padding: 7px 12px; border-radius: 8px; pointer-events: none; white-space: nowrap; opacity: 0; transition: opacity 0.1s; z-index: 10; }
+    .bp-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+    .bp-legend span { display: flex; align-items: center; gap: 6px; }
+    .bp-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .table-card { background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border); overflow: hidden; margin-top: 0.7rem; }
+    .ptable { width: 100%; border-collapse: collapse; font-size: 13px; font-family: 'DM Mono', monospace; }
+    .ptable th { text-align: left; font-size: 11px; color: var(--muted); padding: 6px 10px; border-bottom: 0.5px solid var(--border); font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; }
+    .ptable td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
+    .ptable tr:last-child td { border-bottom: none; }
+    .ptable tr:nth-child(even) td { background: var(--surface2); }
+    .data-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.7rem; }
+    .pill { font-family: 'DM Mono', monospace; font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface2); color: var(--muted); border: 0.5px solid var(--border); }
+    .pill.q1  { background: #eaf3de; color: #27500a; border-color: #c0dd97; }
+    .pill.q2  { background: #e6f1fb; color: #0c447c; border-color: #85b7eb; }
+    .pill.q3  { background: #eeedfe; color: #3c3489; border-color: #afa9ec; }
+    .pill.med { background: #181816; color: #fff; border-color: #181816; }
+    .pill.out { background: #fcebeb; color: #791f1f; border-color: #f09595; }
+    @media (max-width: 600px) {
+      .stats-layout { grid-template-columns: 1fr; }
+      .input-row { flex-direction: column; }
+      .btn-group { flex-direction: row; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Estadística descriptiva</h1>
+    <p>Introduce los datos, pulsa calcular y obtén todos los estadísticos.</p>
+  </header>
+
+  <div class="input-card">
+    <label class="input-label">Datos (separados por comas, espacios o saltos de línea)</label>
+    <div class="input-row">
+      <textarea id="dataInput">12, 7, 3, 14, 6, 11, 5, 4, 9, 8, 2, 15, 10, 13, 1</textarea>
+      <div class="btn-group">
+        <button class="btn-primary" onclick="calculate()">Calcular</button>
+        <button class="btn-secondary" onclick="loadSample()">Ejemplo</button>
+        <button class="btn-secondary" onclick="clearAll()">Limpiar</button>
+      </div>
+    </div>
+    <div class="error" id="errorMsg"></div>
+    <div class="n-badge" id="nBadge"></div>
+  </div>
+
+  <div id="results" style="display:none;">
+
+    <div class="section-title">Estadísticos</div>
+    <div class="stats-layout">
+
+      <!-- Tendencia central -->
+      <div class="stat-table-card">
+        <div class="card-head blue">Tendencia central</div>
+        <table class="stab">
+          <tr><td>Media (x̄)</td><td id="r-mean">—</td></tr>
+          <tr><td>Mediana</td><td id="r-median">—</td></tr>
+          <tr><td>Moda</td><td id="r-mode">—</td></tr>
+          <tr><td id="r-mode-sub" style="color:var(--hint);font-size:11px;" colspan="2"></td></tr>
+        </table>
+      </div>
+
+      <!-- Cuartiles -->
+      <div class="stat-table-card">
+        <div class="card-head green">Cuartiles y extremos</div>
+        <table class="stab">
+          <tr><td>Mínimo</td><td id="r-min">—</td></tr>
+          <tr><td>Q1 (25%)</td><td id="r-q1">—</td></tr>
+          <tr><td>Q2 / Mediana (50%)</td><td id="r-q2">—</td></tr>
+          <tr><td>Q3 (75%)</td><td id="r-q3">—</td></tr>
+          <tr><td>Máximo</td><td id="r-max">—</td></tr>
+        </table>
+      </div>
+
+      <!-- Dispersión -->
+      <div class="stat-table-card">
+        <div class="card-head amber">Dispersión</div>
+        <table class="stab">
+          <tr><td>Desv. típica (s)</td><td id="r-std">—</td></tr>
+          <tr><td>Varianza (s²)</td><td id="r-var">—</td></tr>
+          <tr><td>Rango</td><td id="r-range">—</td></tr>
+          <tr><td>Rango intercuartílico</td><td id="r-iqr">—</td></tr>
+          <tr><td>Coef. variación</td><td id="r-cv">—</td></tr>
+        </table>
+      </div>
+
+      <!-- Forma -->
+      <div class="stat-table-card">
+        <div class="card-head purple">Forma de la distribución</div>
+        <table class="stab">
+          <tr><td>Asimetría</td><td id="r-skew">—</td></tr>
+          <tr><td id="r-skew-sub" style="color:var(--hint);font-size:11px;" colspan="2"></td></tr>
+          <tr><td>Curtosis</td><td id="r-kurt">—</td></tr>
+          <tr><td id="r-kurt-sub" style="color:var(--hint);font-size:11px;" colspan="2"></td></tr>
+        </table>
+      </div>
+
+    </div>
+
+    <div class="section-title">Diagrama de caja interactivo — pasa el cursor por los elementos</div>
+    <div class="boxplot-card" id="boxplotCard">
+      <canvas id="boxplotCanvas" height="140"></canvas>
+      <div class="tooltip-box" id="bpTooltip"></div>
+      <div class="bp-legend">
+        <span><span class="bp-dot" style="background:#85b7eb;"></span>Caja IQR (Q1–Q3)</span>
+        <span><span class="bp-dot" style="background:#181816; border-radius:50%;"></span>Mediana</span>
+        <span><span class="bp-dot" style="background:#378add; clip-path:polygon(50% 0,100% 100%,0 100%);"></span>Media</span>
+        <span><span class="bp-dot" style="background:#b4b2a9;"></span>Bigotes (1.5 × IQR)</span>
+        <span><span class="bp-dot" style="background:#fcebeb; border:1.5px solid #f09595; border-radius:50%;"></span>Outliers</span>
+      </div>
+    </div>
+
+    <div class="section-title">Percentiles seleccionados</div>
+    <div class="table-card">
+      <table class="ptable">
+        <thead>
+          <tr>
+            <th>Percentil</th><th>P5</th><th>P10</th><th>P20</th><th>P25</th>
+            <th>P50</th><th>P75</th><th>P80</th><th>P90</th><th>P95</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--muted);">Valor</td>
+            <td id="p5">—</td><td id="p10">—</td><td id="p20">—</td><td id="p25">—</td>
+            <td id="p50">—</td><td id="p75">—</td><td id="p80">—</td><td id="p90">—</td><td id="p95">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Histograma</div>
+    <div class="chart-card">
+      <div style="position:relative; width:100%; height:320px;">
+        <canvas id="histChart" role="img" aria-label="Histograma de frecuencias"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">Datos ordenados</div>
+    <div class="data-pills" id="sortedPills"></div>
+  </div>
+</div>
+
+<script>
+  let histChartObj = null;
+  let bpState = null;
+  let bpListenersAttached = false;
+
+  function fmt(n, d=2) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return parseFloat(n.toFixed(d)).toLocaleString('es-ES');
+  }
+
+  function parseData(raw) {
+    return raw.split(/[\s,;]+/).map(s=>s.trim()).filter(s=>s!=='').map(Number).filter(n=>!isNaN(n));
+  }
+
+  function medianOf(sorted) {
+    const n = sorted.length;
+    if (!n) return NaN;
+    return n%2===1 ? sorted[Math.floor(n/2)] : (sorted[n/2-1]+sorted[n/2])/2;
+  }
+
+  function percentile(sorted, p) {
+    if (!sorted.length) return NaN;
+    const idx = (p/100)*(sorted.length-1);
+    const lo = Math.floor(idx), hi = Math.ceil(idx);
+    return sorted[lo]+(sorted[hi]-sorted[lo])*(idx-lo);
+  }
+
+  function modeOf(data) {
+    const freq = {};
+    data.forEach(v => freq[v]=(freq[v]||0)+1);
+    const max = Math.max(...Object.values(freq));
+    return { values: Object.keys(freq).filter(k=>freq[k]===max).map(Number), freq: max };
+  }
+
+  function skewness(data, mean, std) {
+    if (std===0) return 0;
+    const n = data.length;
+    return (n/((n-1)*(n-2)))*data.reduce((a,v)=>a+Math.pow((v-mean)/std,3),0);
+  }
+
+  function kurtosis(data, mean, std) {
+    if (std===0) return 0;
+    const n = data.length;
+    return ((n*(n+1))/((n-1)*(n-2)*(n-3)))*data.reduce((a,v)=>a+Math.pow((v-mean)/std,4),0)-(3*(n-1)*(n-1))/((n-2)*(n-3));
+  }
+
+  function drawBoxplot() {
+    if (!bpState) return;
+    const { q1, med, q3, mn, mx, whiskerLo, whiskerHi, outliers, mean: meanVal } = bpState;
+
+    const canvas = document.getElementById('boxplotCanvas');
+    const card   = document.getElementById('boxplotCard');
+    const DPR    = window.devicePixelRatio || 1;
+    const W      = card.clientWidth - 48;
+    const H      = 140;
+
+    canvas.width  = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+
+    const PAD_L=55, PAD_R=30, PAD_T=32, BOX_H=40;
+    const plotW = W - PAD_L - PAD_R;
+    const CY = PAD_T + BOX_H / 2;
+
+    const allVals = [mn, mx, ...outliers];
+    const dataMin = Math.min(...allVals);
+    const dataMax = Math.max(...allVals);
+    const span = dataMax - dataMin || 1;
+    const scale = v => PAD_L + ((v - dataMin) / span) * plotW;
+
+    const xQ1=scale(q1), xMed=scale(med), xQ3=scale(q3);
+    const xWL=scale(whiskerLo), xWH=scale(whiskerHi);
+    const xMeanV=scale(meanVal);
+
+    ctx.clearRect(0, 0, W, H);
+
+    // axis line
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 0.5;
+    ctx.moveTo(PAD_L-8, PAD_T+BOX_H+18);
+    ctx.lineTo(W-PAD_R+8, PAD_T+BOX_H+18);
+    ctx.stroke();
+
+    // ticks + labels
+    const tickVals = Array.from(new Set([dataMin, q1, med, q3, dataMax].map(v=>+v.toFixed(6))));
+    tickVals.forEach(v => {
+      const x = scale(v);
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineWidth = 0.5;
+      ctx.moveTo(x, PAD_T+BOX_H+14);
+      ctx.lineTo(x, PAD_T+BOX_H+22);
+      ctx.stroke();
+      ctx.fillStyle = '#9a9890';
+      ctx.font = '10px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(fmt(v), x, PAD_T+BOX_H+36);
+    });
+
+    // whisker dashed lines
+    ctx.setLineDash([4,3]);
+    ctx.strokeStyle = '#b4b2a9';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(xWL, CY); ctx.lineTo(xQ1, CY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xQ3, CY); ctx.lineTo(xWH, CY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // whisker caps
+    [xWL, xWH].forEach(x => {
+      ctx.beginPath();
+      ctx.strokeStyle = '#888780';
+      ctx.lineWidth = 2;
+      ctx.moveTo(x, CY-BOX_H/2+6);
+      ctx.lineTo(x, CY+BOX_H/2-6);
+      ctx.stroke();
+    });
+
+    // IQR box
+    ctx.fillStyle = '#e6f1fb';
+    ctx.strokeStyle = '#85b7eb';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(xQ1, PAD_T, xQ3-xQ1, BOX_H, 4);
+    else ctx.rect(xQ1, PAD_T, xQ3-xQ1, BOX_H);
+    ctx.fill();
+    ctx.stroke();
+
+    // Q1 label
+    ctx.fillStyle = '#185fa5';
+    ctx.font = '500 11px DM Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Q1', xQ1, PAD_T-9);
+
+    // Q3 label
+    ctx.fillStyle = '#534ab7';
+    ctx.fillText('Q3', xQ3, PAD_T-9);
+
+    // median line
+    ctx.beginPath();
+    ctx.strokeStyle = '#181816';
+    ctx.lineWidth = 3;
+    ctx.moveTo(xMed, PAD_T+3);
+    ctx.lineTo(xMed, PAD_T+BOX_H-3);
+    ctx.stroke();
+    ctx.fillStyle = '#181816';
+    ctx.font = '500 11px DM Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Med', xMed, PAD_T-9);
+
+    // mean triangle (below box)
+    ctx.fillStyle = '#378add';
+    ctx.beginPath();
+    ctx.moveTo(xMeanV,     PAD_T+BOX_H+2);
+    ctx.lineTo(xMeanV-6,   PAD_T+BOX_H+14);
+    ctx.lineTo(xMeanV+6,   PAD_T+BOX_H+14);
+    ctx.closePath();
+    ctx.fill();
+
+    // outliers
+    outliers.forEach(v => {
+      const x = scale(v);
+      ctx.beginPath();
+      ctx.fillStyle = '#fcebeb';
+      ctx.strokeStyle = '#a32d2d';
+      ctx.lineWidth = 1.5;
+      ctx.arc(x, CY, 5, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    // store hit areas
+    bpState.hitAreas = [
+      { type:'q1',  x:xQ1,     label:'Q1',               value:q1,       desc:'25% de datos por debajo' },
+      { type:'med', x:xMed,    label:'Mediana',           value:med,      desc:'50% de datos por debajo' },
+      { type:'q3',  x:xQ3,     label:'Q3',               value:q3,       desc:'75% de datos por debajo' },
+      { type:'wlo', x:xWL,     label:'Bigote inferior',   value:whiskerLo, desc:'Q1 − 1.5·IQR' },
+      { type:'whi', x:xWH,     label:'Bigote superior',   value:whiskerHi, desc:'Q3 + 1.5·IQR' },
+      { type:'mean',x:xMeanV,  label:'Media',             value:meanVal,  desc:'promedio aritmético', isMean:true },
+      ...outliers.map(v=>({ type:'out', x:scale(v), label:'Outlier', value:v, desc:'valor atípico' }))
+    ];
+    bpState.geometry = { PAD_T, BOX_H, CY };
+  }
+
+  function setupBoxplotListeners() {
+    if (bpListenersAttached) return;
+    bpListenersAttached = true;
+
+    const canvas  = document.getElementById('boxplotCanvas');
+    const tooltip = document.getElementById('bpTooltip');
+    const card    = document.getElementById('boxplotCard');
+
+    canvas.addEventListener('mousemove', e => {
+      if (!bpState?.hitAreas) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const { PAD_T, BOX_H, CY } = bpState.geometry;
+
+      let hit = null;
+      for (const area of bpState.hitAreas) {
+        const dx = Math.abs(mx - area.x);
+        if (area.type === 'out') {
+          if (dx < 10 && Math.abs(my - CY) < 10) { hit = area; break; }
+        } else if (area.isMean) {
+          if (dx < 8 && my >= PAD_T+BOX_H && my <= PAD_T+BOX_H+16) { hit = area; break; }
+        } else {
+          if (dx < 10 && my >= PAD_T-6 && my <= PAD_T+BOX_H+6) { hit = area; break; }
+        }
+      }
+
+      if (hit) {
+        canvas.style.cursor = 'crosshair';
+        tooltip.textContent = `${hit.label}: ${fmt(hit.value)}  ·  ${hit.desc}`;
+        tooltip.style.opacity = '1';
+        const cr = card.getBoundingClientRect();
+        let tx = e.clientX - cr.left + 14;
+        let ty = e.clientY - cr.top  - 40;
+        const tw = tooltip.offsetWidth || 240;
+        if (tx + tw > cr.width - 8) tx = e.clientX - cr.left - tw - 14;
+        if (ty < 4) ty = 4;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top  = ty + 'px';
+      } else {
+        canvas.style.cursor = 'default';
+        tooltip.style.opacity = '0';
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      document.getElementById('bpTooltip').style.opacity = '0';
+    });
+  }
+
+  function calculate() {
+    const raw  = document.getElementById('dataInput').value;
+    const data = parseData(raw);
+    const errEl = document.getElementById('errorMsg');
+
+    if (data.length < 2) {
+      errEl.textContent = 'Introduce al menos 2 valores numéricos.';
+      document.getElementById('results').style.display = 'none';
+      return;
+    }
+    errEl.textContent = '';
+
+    const sorted = [...data].sort((a,b)=>a-b);
+    const n = sorted.length;
+    document.getElementById('nBadge').innerHTML = `<strong>n = ${n}</strong> valores cargados`;
+
+    const mean     = data.reduce((a,v)=>a+v,0)/n;
+    const variance = data.reduce((a,v)=>a+Math.pow(v-mean,2),0)/(n-1);
+    const std      = Math.sqrt(variance);
+    const med      = medianOf(sorted);
+    const { values: modeVals, freq: modeFreq } = modeOf(data);
+    const q1 = percentile(sorted,25);
+    const q3 = percentile(sorted,75);
+    const iqr = q3-q1;
+    const mn = sorted[0], mx = sorted[n-1];
+    const cv = mean!==0 ? Math.abs(std/mean)*100 : NaN;
+    const skew = skewness(data, mean, std);
+    const kurt = kurtosis(data, mean, std);
+
+    const fence     = iqr*1.5;
+    const whiskerLo = sorted.find(v=>v>=q1-fence) ?? mn;
+    const whiskerHi = [...sorted].reverse().find(v=>v<=q3+fence) ?? mx;
+    const outliers  = sorted.filter(v=>v<q1-fence||v>q3+fence);
+
+    set('r-mean', fmt(mean));
+    set('r-median', fmt(med));
+    if (modeFreq===1) { set('r-mode','Amodal'); set('r-mode-sub','sin moda (todos distintos)'); }
+    else { set('r-mode', modeVals.slice(0,3).map(v=>fmt(v)).join(', ')+(modeVals.length>3?'…':'')); set('r-mode-sub',`frecuencia: ${modeFreq}`); }
+
+    set('r-std', fmt(std)); set('r-var', fmt(variance)); set('r-range', fmt(mx-mn)); set('r-iqr', fmt(iqr));
+    set('r-cv', isNaN(cv)?'—':fmt(cv,1)+'%');
+    set('r-skew', fmt(skew,3));
+    set('r-skew-sub', skew>0.5?'asimetría positiva (derecha)':skew<-0.5?'asimetría negativa (izquierda)':'aprox. simétrica');
+    set('r-kurt', fmt(kurt,3));
+    set('r-kurt-sub', kurt>0.5?'leptocúrtica':kurt<-0.5?'platicúrtica':'mesocúrtica');
+    set('r-min',fmt(mn)); set('r-q1',fmt(q1)); set('r-q2',fmt(med)); set('r-q3',fmt(q3)); set('r-max',fmt(mx));
+
+    [5,10,20,25,50,75,80,90,95].forEach(p => set('p'+p, fmt(percentile(sorted,p))));
+
+    bpState = { sorted, q1, med, q3, mn, mx, whiskerLo, whiskerHi, outliers, mean };
+
+    document.getElementById('results').style.display = 'block';
+
+    requestAnimationFrame(() => {
+      drawBoxplot();
+      setupBoxplotListeners();
+    });
+
+    // histogram
+    const bins  = Math.max(5, Math.min(20, Math.ceil(Math.sqrt(n))));
+    const bw    = (mx-mn)/bins || 1;
+    const counts = Array(bins).fill(0);
+    data.forEach(v=>{ let i=Math.floor((v-mn)/bw); if(i>=bins)i=bins-1; counts[i]++; });
+    const hlabels = counts.map((_,i)=>fmt(mn+i*bw,1)+'–'+fmt(mn+(i+1)*bw,1));
+
+    if (histChartObj) { histChartObj.destroy(); histChartObj=null; }
+    histChartObj = new Chart(document.getElementById('histChart').getContext('2d'),{
+      type:'bar',
+      data:{ labels:hlabels, datasets:[{ data:counts, backgroundColor:'#85b7eb', borderColor:'#378add', borderWidth:1, borderRadius:3, barPercentage:0.95, categoryPercentage:0.95 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ ticks:{font:{size:10,family:'DM Mono'},color:'#9a9890',maxRotation:35,autoSkip:false}, grid:{display:false}, border:{display:false} },
+                 y:{ ticks:{font:{size:11,family:'DM Mono'},color:'#9a9890',stepSize:1}, grid:{color:'rgba(0,0,0,0.05)'}, border:{display:false}, title:{display:true,text:'frecuencia',color:'#9a9890',font:{size:11}} } } }
+    });
+
+    // sorted pills
+    const pillsEl = document.getElementById('sortedPills');
+    pillsEl.innerHTML = '';
+    sorted.forEach(v=>{
+      const isOut = v<q1-fence||v>q3+fence;
+      const sp = document.createElement('span');
+      sp.className = 'pill'+(isOut?' out':v===med?' med':v<=q1?' q1':v<=med?' q2':v<=q3?' q3':'');
+      sp.textContent = fmt(v);
+      pillsEl.appendChild(sp);
+    });
+  }
+
+  window.addEventListener('resize', ()=>{ if(bpState) drawBoxplot(); });
+
+  function set(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+
+  function loadSample() {
+    const s = [
+      '23,45,12,67,34,89,56,78,90,11,44,33,55,66,22,77,88,99,10,50,120,5,95,105',
+      '2.1,3.4,2.8,4.1,3.0,2.5,3.9,4.5,2.2,3.3,2.9,3.6,4.0,2.7,3.1,8.5,0.3',
+      '100,102,98,105,97,110,95,108,103,99,106,101,104,96,107,150,60'
+    ];
+    document.getElementById('dataInput').value = s[Math.floor(Math.random()*s.length)];
+    calculate();
+  }
+
+  function clearAll() {
+    document.getElementById('dataInput').value='';
+    document.getElementById('errorMsg').textContent='';
+    document.getElementById('nBadge').textContent='';
+    document.getElementById('results').style.display='none';
+    if(histChartObj){histChartObj.destroy();histChartObj=null;}
+    bpState=null;
+  }
+
+  calculate();
+</script>
+</body>
+</html>
