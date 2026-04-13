@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mi widget</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      padding: 20px;
+    }
+    button {
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Mi primer widget 🚀</h2>
+<button onclick="saludar()">Click aquí</button>
+
+<script>
+function saludar() {
+  alert("¡Funciona dentro de Notion!");
+}
+</script>
+
+</body>
+</html>
